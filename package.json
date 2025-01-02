@@ -1,6 +1,7 @@
 {
   "name": "my-hiking-permit-site",
   "version": "1.0.0",
+  "type": "module",
   "dependencies": {
     "googleapis": "^110.0.0",
     "dayjs": "^1.11.7"
