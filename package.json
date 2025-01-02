@@ -1,0 +1,12 @@
+{
+  "name": "my-hiking-permit-site",
+  "version": "1.0.0",
+  "dependencies": {
+    "googleapis": "^110.0.0",
+    "dayjs": "^1.11.7"
+    // ... any other packages you need
+  },
+  "scripts": {
+    "build": "echo 'No build step here' && exit 0"
+  }
+}
