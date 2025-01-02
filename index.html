@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Hiking Permit Form</title>
+  <style>
+    /* Basic styling for clarity */
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    form { max-width: 400px; }
+    label { display: block; margin-bottom: 8px; }
+    input, select { width: 100%; margin-bottom: 16px; padding: 8px; }
+    button { padding: 10px 20px; }
+    .error { color: red; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>Hiking Permit Application</h1>
+  <div id="errorMsg" class="error"></div>
+  <form id="permitForm">
+    <label>
+      Name:
+      <input type="text" id="name" required />
+    </label>
+    <label>
+      Email:
+      <input type="email" id="email" required />
+    </label>
+    <label>
+      Permit Date:
+      <!-- We'll handle date validation client-side in JS -->
+      <input type="date" id="permitDate" required />
+    </label>
+    <label>
+      Permit Type:
+      <select id="permitType">
+        <option value="Hiking">Hiking</option>
+        <option value="Biking">Biking</option>
+      </select>
+    </label>
+    <label>
+      <input type="checkbox" id="waiver" required />
+      I have read and agree to the waiver
+    </label>
+    <button type="submit">Submit</button>
+  </form>
+
+  <script>
+    // Basic front-end validation
+    // We'll also rely on server-side checks.
+    const form = document.getElementById('permitForm');
+    const errorMsg = document.getElementById('errorMsg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = ''; // clear old errors
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const permitDate = document.getElementById('permitDate').value; // YYYY-MM-DD
+      const permitType = document.getElementById('permitType').value;
+      const waiver = document.getElementById('waiver').checked;
+
+      // Quick client-side checks:
+      // 1. Date range check: between 2024-11-03 and 2025-03-09
+      // 2. Not older than today, not more than 7 days out
+
+      const now = new Date();
+      const chosen = new Date(permitDate);
+      const earliest = new Date('2024-11-03');
+      const latest = new Date('2025-03-09');
+      const maxAllowed = new Date();
+      maxAllowed.setDate(now.getDate() + 7);
+
+      if (chosen < earliest || chosen > latest) {
+        errorMsg.textContent = 'Date out of allowed range (Nov 3, 2024 – Mar 9, 2025).';
+        return;
+      }
+
+      if (chosen < now || chosen > maxAllowed) {
+        errorMsg.textContent = 'Date must be within the next 7 days, and not in the past.';
+        return;
+      }
+
+      // Everything looks okay on the client side, let's post to serverless
+      try {
+        const response = await fetch('/.netlify/functions/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            permitDate,
+            permitType,
+            waiverConfirmed: waiver
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          // We expect an error with "error" property
+          errorMsg.textContent = result.error || 'Something went wrong.';
+        } else {
+          // success
+          alert('Success! ' + result.message);
+          form.reset();
+        }
+      } catch (err) {
+        console.error(err);
+        errorMsg.textContent = 'Unable to submit permit. Try again later.';
+      }
+    });
+  </script>
+</body>
+</html>
