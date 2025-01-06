@@ -12,11 +12,17 @@
     .message { margin-top: 20px; font-weight: bold; }
     .error { color: red; }
     .success { color: green; }
+    #remainingPermits {
+      margin-left: 10px; 
+      font-style: italic;
+      color: #555;
+    }
   </style>
 </head>
 <body>
 
 <h1>Hiking Permit Application</h1>
+
 <form id="permitForm">
   <label>
     Name:
@@ -30,7 +36,10 @@
 
   <label>
     Permit Date:
-    <input type="date" id="permitDate" required>
+    <div style="display:flex; align-items:center;">
+      <input type="date" id="permitDate" required style="flex:0 0 180px;">
+      <span id="remainingPermits"></span>
+    </div>
   </label>
 
   <label>
@@ -53,42 +62,75 @@
 
 <script>
   // Replace with your actual /exec Web App URL
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUYT5MuBf5l08W2S4PM6Ft_R_bddqLK3XC8NyaeedXr4rRV1luPd2fMvIUfu6_NxjFJg/exec";
+  const APPS_SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbyUYT5MuBf5l08W2S4PM6Ft_R_bddqLK3XC8NyaeedXr4rRV1luPd2fMvIUfu6_NxjFJg/exec";
 
   /**
-   * On page load, set the datepicker min/max:
-   * - No past dates
-   * - No more than 7 days from today
-   * - Overall range: Nov 3, 2024 – Mar 9, 2025
+   * Restrict date input: no past days, no more than 7 days from now,
+   * within overall range: Nov 3, 2024 – Mar 9, 2025.
    */
   function setDateBounds() {
     const dateInput = document.getElementById("permitDate");
 
-    // Hard-coded overall range
     const earliest = new Date("2024-11-03");
     const latest = new Date("2025-03-09");
 
-    // Today's date (midnight)
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    now.setHours(0,0,0,0);
 
-    // 7 days from now
     const sevenDaysFromNow = new Date(now);
     sevenDaysFromNow.setDate(now.getDate() + 7);
 
-    // minDate = whichever is later: today or earliest
-    const minDate = (now > earliest) ? now : earliest;
-    // maxDate = whichever is earlier: 7 days from now or latest
-    const maxDate = (sevenDaysFromNow < latest) ? sevenDaysFromNow : latest;
+    // min date is whichever is later: today vs earliest
+    const minDate = now > earliest ? now : earliest;
+    // max date is whichever is earlier: 7 days from now vs latest
+    const maxDate = sevenDaysFromNow < latest ? sevenDaysFromNow : latest;
 
-    // Set min/max in YYYY-MM-DD format
     dateInput.min = minDate.toISOString().split("T")[0];
     dateInput.max = maxDate.toISOString().split("T")[0];
   }
 
-  // Run date-bounds setup after page loads
-  window.onload = setDateBounds;
-  
+  window.onload = () => {
+    setDateBounds();
+
+    // When the user changes the date, fetch remaining permits
+    const dateInput = document.getElementById("permitDate");
+    dateInput.addEventListener("change", onDateChange);
+  };
+
+  async function onDateChange() {
+    const dateInput = document.getElementById("permitDate");
+    const remainingEl = document.getElementById("remainingPermits");
+    remainingEl.textContent = "";
+
+    const selectedDate = dateInput.value; // "YYYY-MM-DD"
+    if (!selectedDate) return;
+
+    try {
+      // We'll call doGet with ?date=YYYY-MM-DD
+      const url = APPS_SCRIPT_BASE_URL + "?date=" + encodeURIComponent(selectedDate);
+      const response = await fetch(url, { method: "GET" });
+      const html = await response.text();
+
+      // Extract JSON from <body>...</body>
+      const match = html.match(/<body[^>]*>([^<]+)<\/body>/);
+      if (!match) {
+        throw new Error("No JSON found in HTML response");
+      }
+      const jsonString = match[1].trim();
+      const data = JSON.parse(jsonString);
+
+      if (data.success) {
+        remainingEl.textContent = `Remaining Permits: ${data.remainingPermits}`;
+      } else {
+        remainingEl.textContent = `Error: ${data.error || "Unknown"}`;
+      }
+    } catch(err) {
+      console.error(err);
+      remainingEl.textContent = "Error fetching permits";
+    }
+  }
+
+  // Handle final form submission => doPost
   const formEl = document.getElementById('permitForm');
   const messageEl = document.getElementById('message');
 
@@ -97,55 +139,37 @@
     messageEl.textContent = '';
     messageEl.className = 'message';
 
-    // Collect form data
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
-    const permitDate = document.getElementById('permitDate').value; // "YYYY-MM-DD"
+    const permitDate = document.getElementById('permitDate').value; 
     const permitType = document.getElementById('permitType').value;
     const waiverConfirmed = document.getElementById('waiver').checked;
 
-    const payload = {
-      name,
-      email,
-      permitDate,
-      permitType,
-      waiverConfirmed
-    };
+    const payload = { name, email, permitDate, permitType, waiverConfirmed };
 
     try {
-      // Post to Apps Script, get raw HTML response
-      const response = await fetch(APPS_SCRIPT_URL, {
+      const response = await fetch(APPS_SCRIPT_BASE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      // Convert HTML to text
       const html = await response.text();
-      // The <body> contains a JSON string. Use a regex to extract it:
       const match = html.match(/<body[^>]*>([^<]+)<\/body>/);
-      if (!match) {
-        throw new Error("No JSON found in the HTML response.");
-      }
-
+      if (!match) throw new Error("No JSON found in HTML response");
       const jsonString = match[1].trim();
       const result = JSON.parse(jsonString);
 
-      // Now we have the actual JSON from the server
       if (!result.success) {
-        // It's an error
         messageEl.classList.add('error');
         messageEl.textContent = result.error || 'Unknown error.';
       } else {
-        // Success
         messageEl.classList.add('success');
         messageEl.textContent = 
-          `Permit #${result.permitNumber} created! 
-           Date: ${result.permitDate}, Name: ${result.name}.`;
-        // Optionally reset form
+          `Permit #${result.permitNumber} created! Date: ${result.permitDate}, Name: ${result.name}.`;
         formEl.reset();
+        document.getElementById('remainingPermits').textContent = "";
       }
-
     } catch (err) {
       messageEl.classList.add('error');
       messageEl.textContent = "Submission failed: " + err;
