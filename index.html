@@ -18,16 +18,20 @@
 <div id="message"></div>
 
 <form id="permitForm">
-  <label>Name:
+  <label>
+    Name:
     <input type="text" id="name" required />
   </label>
-  <label>Email:
+  <label>
+    Email:
     <input type="email" id="email" required />
   </label>
-  <label>Permit Date:
+  <label>
+    Permit Date:
     <input type="date" id="permitDate" required />
   </label>
-  <label>Permit Type:
+  <label>
+    Permit Type:
     <select id="permitType">
       <option value="Hiking">Hiking</option>
       <option value="Biking">Biking</option>
@@ -35,7 +39,7 @@
   </label>
   <label>
     <input type="checkbox" id="waiver" required />
-    I have read and agree to the attached waiver.
+    I have read and agree to the attached waiver
   </label>
   <button type="submit">Submit</button>
 </form>
@@ -44,16 +48,17 @@
   const form = document.getElementById('permitForm');
   const message = document.getElementById('message');
 
-  // Your published Apps Script Web App URL:
+  // Paste your Apps Script web app URL here ("/exec" version)
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUYT5MuBf5l08W2S4PM6Ft_R_bddqLK3XC8NyaeedXr4rRV1luPd2fMvIUfu6_NxjFJg/exec";
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     message.textContent = "";
+    message.className = "";
 
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
-    const permitDate = document.getElementById('permitDate').value;
+    const permitDate = document.getElementById('permitDate').value; // "YYYY-MM-DD"
     const permitType = document.getElementById('permitType').value;
     const waiverConfirmed = document.getElementById('waiver').checked;
 
@@ -68,39 +73,32 @@
     try {
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        // If you get CORS errors, try removing this or set to 'no-cors' 
-        // but then you can't read the response data.
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const result = await response.json(); // parse JSON from doPost
+
+      // Parse the JSON returned by doPost()
+      const result = await response.json();
 
       if (!result.success) {
-        // Show the error message from the server
-        message.classList.remove('success');
+        // Show error from server
         message.classList.add('error');
         message.textContent = result.error || "Unknown error.";
         return;
       }
 
-      // If success, we have permitNumber, name, email, etc.
-      const permitNumber = result.permitNumber;
-      // Redirect to confirmation.html with query params or localStorage
-      // Example using query parameters:
+      // On success: redirect to confirmation page with permit info
       const queryParams = new URLSearchParams({
-        permitNumber: permitNumber,
-        name,
-        email,
-        permitDate,
-        permitType
+        permitNumber: result.permitNumber,
+        name: result.name,
+        email: result.email,
+        permitDate: result.permitDate,
+        permitType: result.permitType
       }).toString();
 
       window.location.href = "confirmation.html?" + queryParams;
 
     } catch (err) {
-      message.classList.remove('success');
       message.classList.add('error');
       message.textContent = "Submission failed: " + err;
     }
