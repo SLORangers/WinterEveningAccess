@@ -145,6 +145,7 @@
     const permitType = document.getElementById('permitType').value;
     const waiverConfirmed = document.getElementById('waiver').checked;
 
+/*
     const payload = { name, email, permitDate, permitType, waiverConfirmed };
 
     try {
@@ -154,6 +155,33 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+*/
+const payload = {
+  name: "Test Name",
+  email: "test@example.com",
+  permitDate: "2025-01-07",
+  permitType: "Hiking",
+  waiverConfirmed: true
+};
+
+// Convert payload to URL-encoded string
+const formBody = new URLSearchParams(payload).toString();
+
+try {
+  const response = await fetch(APPS_SCRIPT_BASE_URL, {
+    redirect: "follow",
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, // Avoids JSON, preventing preflight
+    body: formBody
+  });
+
+  
+  const text = await response.text();
+  console.log("Response:", text);
+} catch (error) {
+  console.error("Fetch error:", error);
+}
+
 
 
       const html = await response.text();
