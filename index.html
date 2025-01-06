@@ -6,30 +6,33 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
     form { max-width: 400px; }
-    label { display: block; margin-top: 1em; }
-    input, select { width: 100%; }
-    .error { color: red; margin-bottom: 1em; }
-    .success { color: green; margin-bottom: 1em; }
+    label { display: block; margin-bottom: 10px; }
+    input, select { width: 100%; margin-bottom: 10px; padding: 8px; }
+    button { padding: 10px 20px; }
+    .message { margin-top: 20px; font-weight: bold; }
+    .error { color: red; }
+    .success { color: green; }
   </style>
 </head>
 <body>
 
 <h1>Hiking Permit Application</h1>
-<div id="message"></div>
-
 <form id="permitForm">
   <label>
     Name:
-    <input type="text" id="name" required />
+    <input type="text" id="name" required>
   </label>
+
   <label>
     Email:
-    <input type="email" id="email" required />
+    <input type="email" id="email" required>
   </label>
+
   <label>
     Permit Date:
-    <input type="date" id="permitDate" required />
+    <input type="date" id="permitDate" required>
   </label>
+
   <label>
     Permit Type:
     <select id="permitType">
@@ -37,25 +40,29 @@
       <option value="Biking">Biking</option>
     </select>
   </label>
+
   <label>
-    <input type="checkbox" id="waiver" required />
-    I have read and agree to the attached waiver
+    <input type="checkbox" id="waiver" required>
+    I have read and agree to the attached waiver.
   </label>
+
   <button type="submit">Submit</button>
 </form>
 
+<div id="message" class="message"></div>
+
 <script>
-  const form = document.getElementById('permitForm');
-  const message = document.getElementById('message');
-
-  // Paste your Apps Script web app URL here ("/exec" version)
+  // Replace with your actual /exec Web App URL
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUYT5MuBf5l08W2S4PM6Ft_R_bddqLK3XC8NyaeedXr4rRV1luPd2fMvIUfu6_NxjFJg/exec";
+  const formEl = document.getElementById('permitForm');
+  const messageEl = document.getElementById('message');
 
-  form.addEventListener('submit', async (e) => {
+  formEl.addEventListener('submit', async (e) => {
     e.preventDefault();
-    message.textContent = "";
-    message.className = "";
+    messageEl.textContent = '';
+    messageEl.className = 'message';
 
+    // Collect form data
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
     const permitDate = document.getElementById('permitDate').value; // "YYYY-MM-DD"
@@ -71,39 +78,45 @@
     };
 
     try {
+      // Post to Apps Script, get raw HTML response
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
-      // Parse the JSON returned by doPost()
-      const result = await response.json();
-
-      if (!result.success) {
-        // Show error from server
-        message.classList.add('error');
-        message.textContent = result.error || "Unknown error.";
-        return;
+      // Convert HTML to text
+      const html = await response.text();
+      // The <body> contains a JSON string. Use a regex to extract it:
+      const match = html.match(/<body[^>]*>([^<]+)<\/body>/);
+      if (!match) {
+        throw new Error("No JSON found in the HTML response.");
       }
 
-      // On success: redirect to confirmation page with permit info
-      const queryParams = new URLSearchParams({
-        permitNumber: result.permitNumber,
-        name: result.name,
-        email: result.email,
-        permitDate: result.permitDate,
-        permitType: result.permitType
-      }).toString();
+      const jsonString = match[1].trim();
+      const result = JSON.parse(jsonString);
 
-      window.location.href = "confirmation.html?" + queryParams;
+      // Now we have the actual JSON from the server
+      if (!result.success) {
+        // It's an error
+        messageEl.classList.add('error');
+        messageEl.textContent = result.error || 'Unknown error.';
+      } else {
+        // Success
+        messageEl.classList.add('success');
+        messageEl.textContent = 
+          `Permit #${result.permitNumber} created! 
+           Date: ${result.permitDate}, Name: ${result.name}.`;
+        // Optionally reset form
+        formEl.reset();
+      }
 
     } catch (err) {
-      message.classList.add('error');
-      message.textContent = "Submission failed: " + err;
+      messageEl.classList.add('error');
+      messageEl.textContent = "Submission failed: " + err;
+      console.error(err);
     }
   });
 </script>
-
 </body>
 </html>
