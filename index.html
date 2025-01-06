@@ -146,11 +146,7 @@
     const waiverConfirmed = document.getElementById('waiver').checked;
 
     const payload = { name, email, permitDate, permitType, waiverConfirmed };
-  
-  const queryParams = new URLSearchParams(payload).toString(); // Convert payload to query params
-  const url = `${APPS_SCRIPT_BASE_URL}?${queryParams}`;
-  const response = await fetch(url, { method: 'GET' });
-  
+
     try {
       const response = await fetch(APPS_SCRIPT_BASE_URL, {
         method: 'POST',
