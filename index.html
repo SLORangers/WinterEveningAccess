@@ -145,14 +145,30 @@
     const permitType = document.getElementById('permitType').value;
     const waiverConfirmed = document.getElementById('waiver').checked;
 
-    const payload = { name, email, permitDate, permitType, waiverConfirmed };
+    /*const payload = { name, email, permitDate, permitType, waiverConfirmed };*/
+    const payload = {
+  name: "John Doe",
+  email: "johndoe@example.com",
+  permitDate: "2024-11-10",
+  permitType: "Hiking",
+  waiverConfirmed: true,
+};
 
+const formBody = new URLSearchParams(payload).toString(); // Convert to key=value format
+
+/*
     try {
       const response = await fetch(APPS_SCRIPT_BASE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+*/
+const response = await fetch(APPS_SCRIPT_BASE_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: formBody,
+});
 
       const html = await response.text();
       const match = html.match(/<body[^>]*>([^<]+)<\/body>/);
