@@ -1,116 +1,111 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Hiking Permit Form</title>
   <style>
-    /* Basic styling for clarity */
     body { font-family: Arial, sans-serif; margin: 20px; }
     form { max-width: 400px; }
-    label { display: block; margin-bottom: 8px; }
-    input, select { width: 100%; margin-bottom: 16px; padding: 8px; }
-    button { padding: 10px 20px; }
-    .error { color: red; margin-bottom: 10px; }
+    label { display: block; margin-top: 1em; }
+    input, select { width: 100%; }
+    .error { color: red; margin-bottom: 1em; }
+    .success { color: green; margin-bottom: 1em; }
   </style>
 </head>
 <body>
 
-  <h1>Hiking Permit Application</h1>
-  <div id="errorMsg" class="error"></div>
-  <form id="permitForm">
-    <label>
-      Name:
-      <input type="text" id="name" required />
-    </label>
-    <label>
-      Email:
-      <input type="email" id="email" required />
-    </label>
-    <label>
-      Permit Date:
-      <!-- We'll handle date validation client-side in JS -->
-      <input type="date" id="permitDate" required />
-    </label>
-    <label>
-      Permit Type:
-      <select id="permitType">
-        <option value="Hiking">Hiking</option>
-        <option value="Biking">Biking</option>
-      </select>
-    </label>
-    <label>
-      <input type="checkbox" id="waiver" required />
-      I have read and agree to the waiver
-    </label>
-    <button type="submit">Submit</button>
-  </form>
+<h1>Hiking Permit Application</h1>
+<div id="message"></div>
 
-  <script>
-    // Basic front-end validation
-    // We'll also rely on server-side checks.
-    const form = document.getElementById('permitForm');
-    const errorMsg = document.getElementById('errorMsg');
+<form id="permitForm">
+  <label>Name:
+    <input type="text" id="name" required />
+  </label>
+  <label>Email:
+    <input type="email" id="email" required />
+  </label>
+  <label>Permit Date:
+    <input type="date" id="permitDate" required />
+  </label>
+  <label>Permit Type:
+    <select id="permitType">
+      <option value="Hiking">Hiking</option>
+      <option value="Biking">Biking</option>
+    </select>
+  </label>
+  <label>
+    <input type="checkbox" id="waiver" required />
+    I have read and agree to the attached waiver.
+  </label>
+  <button type="submit">Submit</button>
+</form>
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errorMsg.textContent = ''; // clear old errors
+<script>
+  const form = document.getElementById('permitForm');
+  const message = document.getElementById('message');
 
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const permitDate = document.getElementById('permitDate').value; // YYYY-MM-DD
-      const permitType = document.getElementById('permitType').value;
-      const waiver = document.getElementById('waiver').checked;
+  // Your published Apps Script Web App URL:
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUYT5MuBf5l08W2S4PM6Ft_R_bddqLK3XC8NyaeedXr4rRV1luPd2fMvIUfu6_NxjFJg/exec";
 
-      // Quick client-side checks:
-      // 1. Date range check: between 2024-11-03 and 2025-03-09
-      // 2. Not older than today, not more than 7 days out
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    message.textContent = "";
 
-      const now = new Date();
-      const chosen = new Date(permitDate);
-      const earliest = new Date('2024-11-03');
-      const latest = new Date('2025-03-09');
-      const maxAllowed = new Date();
-      maxAllowed.setDate(now.getDate() + 7);
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const permitDate = document.getElementById('permitDate').value;
+    const permitType = document.getElementById('permitType').value;
+    const waiverConfirmed = document.getElementById('waiver').checked;
 
-      if (chosen < earliest || chosen > latest) {
-        errorMsg.textContent = 'Date out of allowed range (Nov 3, 2024 – Mar 9, 2025).';
+    const payload = {
+      name,
+      email,
+      permitDate,
+      permitType,
+      waiverConfirmed
+    };
+
+    try {
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        // If you get CORS errors, try removing this or set to 'no-cors' 
+        // but then you can't read the response data.
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json(); // parse JSON from doPost
+
+      if (!result.success) {
+        // Show the error message from the server
+        message.classList.remove('success');
+        message.classList.add('error');
+        message.textContent = result.error || "Unknown error.";
         return;
       }
 
-      if (chosen < now || chosen > maxAllowed) {
-        errorMsg.textContent = 'Date must be within the next 7 days, and not in the past.';
-        return;
-      }
+      // If success, we have permitNumber, name, email, etc.
+      const permitNumber = result.permitNumber;
+      // Redirect to confirmation.html with query params or localStorage
+      // Example using query parameters:
+      const queryParams = new URLSearchParams({
+        permitNumber: permitNumber,
+        name,
+        email,
+        permitDate,
+        permitType
+      }).toString();
 
-      // Everything looks okay on the client side, let's post to serverless
-      try {
-        const response = await fetch('/.netlify/functions/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            email,
-            permitDate,
-            permitType,
-            waiverConfirmed: waiver
-          })
-        });
+      window.location.href = "confirmation.html?" + queryParams;
 
-        const result = await response.json();
+    } catch (err) {
+      message.classList.remove('success');
+      message.classList.add('error');
+      message.textContent = "Submission failed: " + err;
+    }
+  });
+</script>
 
-        if (!response.ok) {
-          // We expect an error with "error" property
-          errorMsg.textContent = result.error || 'Something went wrong.';
-        } else {
-          // success
-          alert('Success! ' + result.message);
-          form.reset();
-        }
-      } catch (err) {
-        console.error(err);
-        errorMsg.textContent = 'Unable to submit permit. Try again later.';
-      }
-    });
-  </script>
 </body>
 </html>

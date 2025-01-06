@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Permit Confirmation</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .info { background: #f4f4f4; padding: 10px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+
+<h1>Your Permit Confirmation</h1>
+<div id="confirmation" class="info"></div>
+
+<script>
+  // Parse query parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const permitNumber = urlParams.get('permitNumber');
+  const name = urlParams.get('name');
+  const email = urlParams.get('email');
+  const permitDate = urlParams.get('permitDate');
+  const permitType = urlParams.get('permitType');
+
+  const confirmationDiv = document.getElementById('confirmation');
+
+  if (!permitNumber || !name || !email) {
+    confirmationDiv.textContent = "Missing permit data. Please go back to the form.";
+  } else {
+    confirmationDiv.innerHTML = `
+      <p><strong>Permit #:</strong> ${permitNumber}</p>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Permit Date:</strong> ${permitDate}</p>
+      <p><strong>Permit Type:</strong> ${permitType}</p>
+      <p>Thank you for registering. Please bring this information with you!</p>
+    `;
+  }
+</script>
+</body>
+</html>
