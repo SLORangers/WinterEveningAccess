@@ -175,7 +175,7 @@ try {
     body: formBody
   });
 
-  
+
   const text = await response.text();
   console.log("Response:", text);
 } catch (error) {
@@ -200,7 +200,8 @@ try {
         formEl.reset();
         document.getElementById('remainingPermits').textContent = "";
       }
-    } catch (err) {
+    
+    catch (err) {
       messageEl.classList.add('error');
       messageEl.textContent = "Submission failed: " + err;
       console.error(err);
