@@ -167,46 +167,39 @@ const payload = {
 // Convert payload to URL-encoded string
 const formBody = new URLSearchParams(payload).toString();
 
-try {
-  const response = await fetch(APPS_SCRIPT_BASE_URL, {
-    redirect: "follow",
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, // Avoids JSON, preventing preflight
-    body: formBody
-  });
+  try {
+    const response = await fetch(APPS_SCRIPT_BASE_URL, {
+      redirect: "follow",
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, // Avoids JSON, preventing preflight
+      body: formBody
+    });
 
+    const text = await response.text(); // Get the response text
+    console.log("Response:", text);
 
-  const text = await response.text();
-  console.log("Response:", text);
-} catch (error) {
-  console.error("Fetch error:", error);
-}
+    const match = text.match(/<body[^>]*>([^<]+)<\/body>/);
+    if (!match) throw new Error("No JSON found in HTML response");
 
+    const jsonString = match[1].trim();
+    const result = JSON.parse(jsonString);
 
-
-      const html = await response.text();
-      const match = html.match(/<body[^>]*>([^<]+)<\/body>/);
-      if (!match) throw new Error("No JSON found in HTML response");
-      const jsonString = match[1].trim();
-      const result = JSON.parse(jsonString);
-
-      if (!result.success) {
-        messageEl.classList.add('error');
-        messageEl.textContent = result.error || 'Unknown error.';
-      } else {
-        messageEl.classList.add('success');
-        messageEl.textContent = 
-          `Permit #${result.permitNumber} created! Date: ${result.permitDate}, Name: ${result.name}.`;
-        formEl.reset();
-        document.getElementById('remainingPermits').textContent = "";
-      }
-    
-    catch (err) {
+    if (!result.success) {
       messageEl.classList.add('error');
-      messageEl.textContent = "Submission failed: " + err;
-      console.error(err);
+      messageEl.textContent = result.error || 'Unknown error.';
+    } else {
+      messageEl.classList.add('success');
+      messageEl.textContent = 
+        `Permit #${result.permitNumber} created! Date: ${result.permitDate}, Name: ${result.name}.`;
+      formEl.reset();
+      document.getElementById('remainingPermits').textContent = "";
     }
-  });
+  } catch (err) {
+    messageEl.classList.add('error');
+    messageEl.textContent = "Submission failed: " + err;
+    console.error("Fetch error:", err);
+  }
+});
 </script>
 </body>
 </html>
