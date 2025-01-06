@@ -54,6 +54,41 @@
 <script>
   // Replace with your actual /exec Web App URL
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyUYT5MuBf5l08W2S4PM6Ft_R_bddqLK3XC8NyaeedXr4rRV1luPd2fMvIUfu6_NxjFJg/exec";
+
+  /**
+   * On page load, set the datepicker min/max:
+   * - No past dates
+   * - No more than 7 days from today
+   * - Overall range: Nov 3, 2024 – Mar 9, 2025
+   */
+  function setDateBounds() {
+    const dateInput = document.getElementById("permitDate");
+
+    // Hard-coded overall range
+    const earliest = new Date("2024-11-03");
+    const latest = new Date("2025-03-09");
+
+    // Today's date (midnight)
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    // 7 days from now
+    const sevenDaysFromNow = new Date(now);
+    sevenDaysFromNow.setDate(now.getDate() + 7);
+
+    // minDate = whichever is later: today or earliest
+    const minDate = (now > earliest) ? now : earliest;
+    // maxDate = whichever is earlier: 7 days from now or latest
+    const maxDate = (sevenDaysFromNow < latest) ? sevenDaysFromNow : latest;
+
+    // Set min/max in YYYY-MM-DD format
+    dateInput.min = minDate.toISOString().split("T")[0];
+    dateInput.max = maxDate.toISOString().split("T")[0];
+  }
+
+  // Run date-bounds setup after page loads
+  window.onload = setDateBounds;
+  
   const formEl = document.getElementById('permitForm');
   const messageEl = document.getElementById('message');
 
