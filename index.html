@@ -12,11 +12,7 @@
     .message { margin-top: 20px; font-weight: bold; }
     .error { color: red; }
     .success { color: green; }
-    #remainingPermits {
-      margin-left: 10px; 
-      font-style: italic;
-      color: #555;
-    }
+    #remainingPermits { margin-left: 10px; font-style: italic; color: #555; }
   </style>
 </head>
 <body>
@@ -28,12 +24,10 @@
     Name:
     <input type="text" id="name" required>
   </label>
-
   <label>
     Email:
     <input type="email" id="email" required>
   </label>
-
   <label>
     Permit Date:
     <div style="display:flex; align-items:center;">
@@ -41,7 +35,6 @@
       <span id="remainingPermits"></span>
     </div>
   </label>
-
   <label>
     Permit Type:
     <select id="permitType">
@@ -49,88 +42,73 @@
       <option value="Biking">Biking</option>
     </select>
   </label>
-
   <label>
     <input type="checkbox" id="waiver" required>
     I have read and agree to the attached waiver.
   </label>
-
   <button type="submit">Submit</button>
 </form>
 
 <div id="message" class="message"></div>
 
 <script>
-  // Replace with your actual /exec Web App URL
-  const APPS_SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbwWMIomO8mlDUv6hP9pw_zhlWKYOomqm5citWI9NLOP-eZeftwFgtpjN5oZ1PVuXjCuXw/exec";
+  const APPS_SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbx6npGiuzq-bDfoiEERq7BQtzeAPrOFN2X39sFqafT5yL8i7T0YM7ksAUPoyNE0LVyHNA/exec"; // Replace with actual URL
 
-  /**
-   * Restrict date input: no past days, no more than 7 days from now,
-   * within overall range: Nov 3, 2024 – Mar 9, 2025.
-   */
   function setDateBounds() {
     const dateInput = document.getElementById("permitDate");
-
     const earliest = new Date("2024-11-03");
     const latest = new Date("2025-03-09");
-
     const now = new Date();
     now.setHours(0,0,0,0);
-
     const sevenDaysFromNow = new Date(now);
     sevenDaysFromNow.setDate(now.getDate() + 7);
 
-    // min date is whichever is later: today vs earliest
     const minDate = now > earliest ? now : earliest;
-    // max date is whichever is earlier: 7 days from now vs latest
     const maxDate = sevenDaysFromNow < latest ? sevenDaysFromNow : latest;
-
     dateInput.min = minDate.toISOString().split("T")[0];
     dateInput.max = maxDate.toISOString().split("T")[0];
+
+    console.log(`Set date bounds: min = ${dateInput.min}, max = ${dateInput.max}`);
   }
 
   window.onload = () => {
     setDateBounds();
-
-    // When the user changes the date, fetch remaining permits
-    const dateInput = document.getElementById("permitDate");
-    dateInput.addEventListener("change", onDateChange);
+    document.getElementById("permitDate").addEventListener("change", onDateChange);
   };
 
   async function onDateChange() {
     const dateInput = document.getElementById("permitDate");
     const remainingEl = document.getElementById("remainingPermits");
-    remainingEl.textContent = "";
+    const selectedDate = dateInput.value;
 
-    const selectedDate = dateInput.value; // "YYYY-MM-DD"
     if (!selectedDate) return;
 
+    console.log(`Fetching remaining permits for date: ${selectedDate}`);
+    remainingEl.textContent = "Checking...";
+
     try {
-      // We'll call doGet with ?date=YYYY-MM-DD
       const url = APPS_SCRIPT_BASE_URL + "?date=" + encodeURIComponent(selectedDate);
       const response = await fetch(url, { method: "GET" });
+      console.log(`Received response for GET request: ${response.status}`);
       const html = await response.text();
 
-      // Extract JSON from <body>...</body>
       const match = html.match(/<body[^>]*>([^<]+)<\/body>/);
-      if (!match) {
-        throw new Error("No JSON found in HTML response");
-      }
-      const jsonString = match[1].trim();
-      const data = JSON.parse(jsonString);
+      if (!match) throw new Error("No JSON found in HTML body");
+
+      const data = JSON.parse(match[1].trim());
+      console.log("Parsed JSON:", data);
 
       if (data.success) {
         remainingEl.textContent = `Remaining Permits: ${data.remainingPermits}`;
       } else {
-        remainingEl.textContent = `Error: ${data.error || "Unknown"}`;
+        remainingEl.textContent = `Error: ${data.error || "Unknown error"}`;
       }
-    } catch(err) {
-      console.error(err);
+    } catch (err) {
+      console.error("Error in onDateChange:", err);
       remainingEl.textContent = "Error fetching permits";
     }
   }
 
-  // Handle final form submission => doPost
   const formEl = document.getElementById('permitForm');
   const messageEl = document.getElementById('message');
 
@@ -147,6 +125,8 @@
 
     const payload = { name, email, permitDate, permitType, waiverConfirmed };
 
+    console.log("Submitting form data:", payload);
+
     try {
       const response = await fetch(APPS_SCRIPT_BASE_URL, {
         method: 'POST',
@@ -154,27 +134,27 @@
         body: JSON.stringify(payload),
       });
 
-
+      console.log(`Response status: ${response.status}`);
       const html = await response.text();
       const match = html.match(/<body[^>]*>([^<]+)<\/body>/);
       if (!match) throw new Error("No JSON found in HTML response");
-      const jsonString = match[1].trim();
-      const result = JSON.parse(jsonString);
+
+      const result = JSON.parse(match[1].trim());
+      console.log("Server response:", result);
 
       if (!result.success) {
         messageEl.classList.add('error');
         messageEl.textContent = result.error || 'Unknown error.';
       } else {
         messageEl.classList.add('success');
-        messageEl.textContent = 
-          `Permit #${result.permitNumber} created! Date: ${result.permitDate}, Name: ${result.name}.`;
+        messageEl.textContent = `Permit #${result.permitNumber} created! Date: ${result.permitDate}, Name: ${result.name}.`;
         formEl.reset();
         document.getElementById('remainingPermits').textContent = "";
       }
     } catch (err) {
+      console.error("Error during form submission:", err);
       messageEl.classList.add('error');
       messageEl.textContent = "Submission failed: " + err;
-      console.error(err);
     }
   });
 </script>
