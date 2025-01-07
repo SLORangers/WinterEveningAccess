@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hiking Permit Form</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; }
@@ -61,7 +62,7 @@
 <div id="message" class="message"></div>
 
 <script>
-  // Replace with your actual /exec Web App URL
+  // Your provided Apps Script Web App URL
   const APPS_SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbwWMIomO8mlDUv6hP9pw_zhlWKYOomqm5citWI9NLOP-eZeftwFgtpjN5oZ1PVuXjCuXw/exec";
 
   /**
@@ -75,7 +76,7 @@
     const latest = new Date("2025-03-09");
 
     const now = new Date();
-    now.setHours(0,0,0,0);
+    now.setHours(0, 0, 0, 0);
 
     const sevenDaysFromNow = new Date(now);
     sevenDaysFromNow.setDate(now.getDate() + 7);
@@ -106,25 +107,17 @@
     if (!selectedDate) return;
 
     try {
-      // We'll call doGet with ?date=YYYY-MM-DD
+      // Fetch remaining permits for selected date
       const url = APPS_SCRIPT_BASE_URL + "?date=" + encodeURIComponent(selectedDate);
       const response = await fetch(url, { method: "GET" });
-      const html = await response.text();
-
-      // Extract JSON from <body>...</body>
-      const match = html.match(/<body[^>]*>([^<]+)<\/body>/);
-      if (!match) {
-        throw new Error("No JSON found in HTML response");
-      }
-      const jsonString = match[1].trim();
-      const data = JSON.parse(jsonString);
+      const data = await response.json(); // Direct JSON response parsing
 
       if (data.success) {
         remainingEl.textContent = `Remaining Permits: ${data.remainingPermits}`;
       } else {
         remainingEl.textContent = `Error: ${data.error || "Unknown"}`;
       }
-    } catch(err) {
+    } catch (err) {
       console.error(err);
       remainingEl.textContent = "Error fetching permits";
     }
@@ -145,61 +138,38 @@
     const permitType = document.getElementById('permitType').value;
     const waiverConfirmed = document.getElementById('waiver').checked;
 
-/*
     const payload = { name, email, permitDate, permitType, waiverConfirmed };
+
+    // Convert payload to URL-encoded string for POST request
+    const formBody = new URLSearchParams(payload).toString();
 
     try {
       const response = await fetch(APPS_SCRIPT_BASE_URL, {
-        redirect: "follow",
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody
       });
-*/
-const payload = {
-  name: "Test Name",
-  email: "test@example.com",
-  permitDate: "2025-01-07",
-  permitType: "Hiking",
-  waiverConfirmed: true
-};
 
-// Convert payload to URL-encoded string
-const formBody = new URLSearchParams(payload).toString();
+      const result = await response.json(); // Parse JSON response
+      console.log("Server response:", result);
 
-  try {
-    const response = await fetch(APPS_SCRIPT_BASE_URL, {
-      redirect: "follow",
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, // Avoids JSON, preventing preflight
-      body: formBody
-    });
-
-    const text = await response.text(); // Get the response text
-    console.log("Response:", text);
-
-    const match = text.match(/<body[^>]*>([^<]+)<\/body>/);
-    if (!match) throw new Error("No JSON found in HTML response");
-
-    const jsonString = match[1].trim();
-    const result = JSON.parse(jsonString);
-
-    if (!result.success) {
+      if (!result.success) {
+        messageEl.classList.add('error');
+        messageEl.textContent = result.error || 'Unknown error.';
+      } else {
+        messageEl.classList.add('success');
+        messageEl.textContent = 
+          `Permit #${result.permitNumber} created! Date: ${result.permitDate}, Name: ${result.name}.`;
+        formEl.reset();
+        document.getElementById('remainingPermits').textContent = "";
+      }
+    } catch (err) {
       messageEl.classList.add('error');
-      messageEl.textContent = result.error || 'Unknown error.';
-    } else {
-      messageEl.classList.add('success');
-      messageEl.textContent = 
-        `Permit #${result.permitNumber} created! Date: ${result.permitDate}, Name: ${result.name}.`;
-      formEl.reset();
-      document.getElementById('remainingPermits').textContent = "";
+      messageEl.textContent = "Submission failed: " + err;
+      console.error("Fetch error:", err);
     }
-  } catch (err) {
-    messageEl.classList.add('error');
-    messageEl.textContent = "Submission failed: " + err;
-    console.error("Fetch error:", err);
-  }
-});
+  });
 </script>
+
 </body>
 </html>
