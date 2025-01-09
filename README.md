@@ -36,3 +36,48 @@ This repo contains:
 7. Access `index.html` at `[your-username].github.io/[repo-name]/index.html`.
 
 That's it! Users see the form, fill it out, get validated by Apps Script, and receive a Permit # upon success.
+
+
+
+helpful for figuring out how to post to a google sheet - need to set up an oath token
+https://stackoverflow.com/questions/37315266/google-sheets-api-v4-receives-http-401-responses-for-public-feeds
+
+
+Go to https://developers.google.com/oauthplayground where you will acquire authorization tokens.
+On Step 1, choose Google Sheets API v4 and choose https://www.googleapis.com/auth/spreadsheets scope so you have bot read and write permissions.
+Click the Authorize APIs button. Allow the authentication and you'll proceed to Step 2.
+On Step 2, click Exchange authorization code for tokens button. After that, proceed to Step 3.
+
+*** GET REQUEST ***
+curl \
+  'https://sheets.googleapis.com/v4/spreadsheets/1w8pxQQcahr9KSQUTJt50uQskDXb3XTccJkZOFw2p7oo/values/Sheet1!A1:D5000000' \
+  -H 'Authorization: Bearer ya29.a0ARW5m77iXk7IBXRYFJilowSpaAZLa8KAKMCThIep7DVqP0MpmRTfErGsVupjn8tGNX1dy198U7iOfe8BXHJcauQAdFMlfBa_bxwqc4xa7M8NbIhnDTXC419DRW7u-w32S1l8_GHWRUo9JQm1ES95HBK3C4TFyHmPf_sPvvwXaCgYKASMSARASFQHGX2MioOhk4OH-RX5zkkyWZNFtkw0175' \
+  -H 'Content-Type: application/json' 
+  
+
+*** POST REQUEST ***
+curl -X POST \
+  'https://sheets.googleapis.com/v4/spreadsheets/1w8pxQQcahr9KSQUTJt50uQskDXb3XTccJkZOFw2p7oo/values:batchUpdate' \
+  -H 'Authorization: Bearer ya29.a0ARW5m77iXk7IBXRYFJilowSpaAZLa8KAKMCThIep7DVqP0MpmRTfErGsVupjn8tGNX1dy198U7iOfe8BXHJcauQAdFMlfBa_bxwqc4xa7M8NbIhnDTXC419DRW7u-w32S1l8_GHWRUo9JQm1ES95HBK3C4TFyHmPf_sPvvwXaCgYKASMSARASFQHGX2MioOhk4OH-RX5zkkyWZNFtkw0175' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "valueInputOption": "USER_ENTERED",
+  "data": [
+    {
+      "range": "A1:A3",
+      "values": [
+        [
+          "B1"
+        ],
+        [
+          "B2"
+        ],
+        [
+          "B3"
+        ]
+      ]
+    }
+  ]
+}'
+
+
