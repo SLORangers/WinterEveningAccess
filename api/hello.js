@@ -9,12 +9,12 @@ export async function GET(request) {
     },
     body: JSON.stringify({
        token_uri: 'https://oauth2.googleapis.com/token',
-       refresh_token: '1//047hJy9LrGZP9CgYIARAAGAQSNwF-L9Irfp1IVROFH6ryvQT_-HKxoiGNxdAOaWc34mVKxYepy_soIZY9YCXTumLC3spCuBcJZEU'
+       refresh_token: process.env.GOOGLE_SHEETS_REFRESH_TOKEN
     })
  });
   const data = await response.json();
   console.log(data);
-  return new Response(`Hello from data: ${data}`);
+  return new Response(`Hello from data v2: ${data}`);
 
 }
 export const config = {
