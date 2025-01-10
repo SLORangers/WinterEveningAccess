@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hiking Permit Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    form { max-width: 400px; }
+    label { display: block; margin-bottom: 10px; }
+    input, select { width: 100%; margin-bottom: 10px; padding: 8px; }
+    button { padding: 10px 20px; }
+    .message { margin-top: 20px; font-weight: bold; }
+    .error { color: red; }
+    .success { color: green; }
+    #remainingPermits {
+      margin-left: 10px; 
+      font-style: italic;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Hiking Permit Application</h1>
+
+<form id="permitForm">
+  <label>
+    Name:
+    <input type="text" id="name" required>
+  </label>
+
+  <label>
+    Email:
+    <input type="email" id="email" required>
+  </label>
+
+  <label>
+    Permit Date:
+    <div style="display:flex; align-items:center;">
+      <input type="date" id="permitDate" required style="flex:0 0 180px;">
+      <span id="remainingPermits"></span>
+    </div>
+  </label>
+
+  <label>
+    Permit Type:
+    <select id="permitType">
+      <option value="Hiking">Hiking</option>
+      <option value="Biking">Biking</option>
+    </select>
+  </label>
+
+  <label>
+    <input type="checkbox" id="waiver" required>
+    I have read and agree to the attached waiver.
+  </label>
+
+  <button type="submit">Submit</button>
+</form>
+
+<div id="message" class="message"></div>
+
+<script>
+  // Your provided Apps Script Web App URL
+  const APPS_SCRIPT_BASE_URL = "https://script.google.com/macros/s/AKfycbwWMIomO8mlDUv6hP9pw_zhlWKYOomqm5citWI9NLOP-eZeftwFgtpjN5oZ1PVuXjCuXw/exec";
+
+  /**
+   * Restrict date input: no past days, no more than 7 days from now,
+   * within overall range: Nov 3, 2024 – Mar 9, 2025.
+   */
+  function setDateBounds() {
+    const dateInput = document.getElementById("permitDate");
+
+    const earliest = new Date("2024-11-03");
+    const latest = new Date("2025-03-09");
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const sevenDaysFromNow = new Date(now);
+    sevenDaysFromNow.setDate(now.getDate() + 7);
+
+    // min date is whichever is later: today vs earliest
+    const minDate = now > earliest ? now : earliest;
+    // max date is whichever is earlier: 7 days from now vs latest
+    const maxDate = sevenDaysFromNow < latest ? sevenDaysFromNow : latest;
+
+    dateInput.min = minDate.toISOString().split("T")[0];
+    dateInput.max = maxDate.toISOString().split("T")[0];
+  }
+
+  window.onload = () => {
+    setDateBounds();
+
+    // When the user changes the date, fetch remaining permits
+    const dateInput = document.getElementById("permitDate");
+    dateInput.addEventListener("change", onDateChange);
+  };
+
+  async function onDateChange() {
+    const dateInput = document.getElementById("permitDate");
+    const remainingEl = document.getElementById("remainingPermits");
+    remainingEl.textContent = "";
+
+    const selectedDate = dateInput.value; // "YYYY-MM-DD"
+    if (!selectedDate) return;
+
+    try {
+      // Fetch remaining permits for selected date
+      const url = APPS_SCRIPT_BASE_URL + "?date=" + encodeURIComponent(selectedDate);
+      const response = await fetch(url, { method: "GET" });
+      const data = await response.json(); // Direct JSON response parsing
+
+      if (data.success) {
+        remainingEl.textContent = `Remaining Permits: ${data.remainingPermits}`;
+      } else {
+        remainingEl.textContent = `Error: ${data.error || "Unknown"}`;
+      }
+    } catch (err) {
+      console.error(err);
+      remainingEl.textContent = "Error fetching permits";
+    }
+  }
+
+  // Handle final form submission => doPost
+  const formEl = document.getElementById('permitForm');
+  const messageEl = document.getElementById('message');
+
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    messageEl.textContent = '';
+    messageEl.className = 'message';
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const permitDate = document.getElementById('permitDate').value; 
+    const permitType = document.getElementById('permitType').value;
+    const waiverConfirmed = document.getElementById('waiver').checked;
+
+    const payload = { name, email, permitDate, permitType, waiverConfirmed };
+
+    // Convert payload to URL-encoded string for POST request
+    const formBody = new URLSearchParams(payload).toString();
+
+    try {
+      const response = await fetch(APPS_SCRIPT_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody
+      });
+
+      const result = await response.json(); // Parse JSON response
+      console.log("Server response:", result);
+
+      if (!result.success) {
+        messageEl.classList.add('error');
+        messageEl.textContent = result.error || 'Unknown error.';
+      } else {
+        messageEl.classList.add('success');
+        messageEl.textContent = 
+          `Permit #${result.permitNumber} created! Date: ${result.permitDate}, Name: ${result.name}.`;
+        formEl.reset();
+        document.getElementById('remainingPermits').textContent = "";
+      }
+    } catch (err) {
+      messageEl.classList.add('error');
+      messageEl.textContent = "Submission failed: " + err;
+      console.error("Fetch error:", err);
+    }
+  });
+</script>
+
+</body>
+</html>

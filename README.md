@@ -1,42 +1,35 @@
 # Hiking Permit Website (GitHub Pages + Google Apps Script + Google Sheets)
 
-This repo contains:
+## One time Setup: 
 
-- **index.html**: The main form page (hosted on GitHub Pages)  
-- **confirmation.html**: Displays the user’s confirmed permit # after they submit  
-- **apps-script/Code.gs**: Sample code for Google Apps Script (paste into your Apps Script editor)
+install the latest version of node ( https://nodejs.org/en/download/ )
+npm install 
 
-## How It Works
+# Local Development: 
+npm run start
 
-1. **Google Apps Script** (`Code.gs`) is published as a Web App, which processes form submissions:
-   - Checks date range (Nov 3, 2024 - Mar 9, 2025)
-   - Checks max 7 days from today
-   - Rejects if the date is full (65 sign-ups)
-   - Generates a unique Permit # and writes to the Google Sheet
-   - Returns a JSON response
+Go to http://localhost:3000
 
-2. **index.html**:
-   - Collects user data
-   - Sends a `fetch` POST request to the Apps Script Web App URL
-   - On success, redirects to `confirmation.html`
+## Deploy Your Own
 
-3. **confirmation.html**:
-   - Reads the query parameters (Permit #, user info)
-   - Displays a confirmation message
+Deploy your own Vite project with Vercel.
 
-## Deployment Steps
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/vercel/tree/main/examples/vite-react&template=vite-react)
+
+_Live Example: https://vite-react-example.vercel.app_
+
+### Deploying From Your Terminal
+
+You can deploy your new Vite project with a single command from your terminal using [Vercel CLI](https://vercel.com/download):
+
+```shell
+$ vercel
+```
+
 
 1. **Set up Google Sheet** with columns:  
    `Timestamp | Permit # | Name | Email | Permit Date | Permit Type | Waiver`
-2. **Add Apps Script** (via Extensions → Apps Script) and copy `Code.gs` content.  
-3. **Deploy as a Web App** with "Anyone" access. Copy the `/exec` URL.  
-4. **Clone or upload this repo** to GitHub.  
-5. **Edit `index.html`** to insert your `/exec` URL in `APPS_SCRIPT_URL`.  
-6. **Enable GitHub Pages** in your repo’s settings (Settings → Pages).  
-7. Access `index.html` at `[your-username].github.io/[repo-name]/index.html`.
-
-That's it! Users see the form, fill it out, get validated by Apps Script, and receive a Permit # upon success.
-
+   
 
 
 # How to GET/POST to Google Sheets API v4
@@ -85,29 +78,34 @@ curl -X POST \
 
 
 # Next steps for Brazil - 
+
 Edit the index.html file to do the following:
    - add a loading spinner to the form 
    - make a JS fetch request to to the google developers playground to get a new access token 
 
    ```javascript
-   fetch('https://developers.google.com/oauthplayground/refreshAccessToken', {
-      method: 'POST',
-      headers: {
-         'Accept': 'application/json, text/javascript, */*; q=0.01',
-         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-         token_uri: 'https://oauth2.googleapis.com/token',
-         refresh_token: 'YOUR_REFRESH_TOKEN_HERE'
-      })
-   })
-   .then(response => response.json())
-   .then(data => {
-      console.log('Access Token:', data.access_token);
-   })
-   .catch(error => {
-      console.error('Error:', error);
-   });
+   async function getAccessToken() {
+      try {
+         const response = await fetch('https://corsproxy.io/?key=aa313e6b&url=https://developers.google.com/oauthplayground/refreshAccessToken', {
+            method: 'POST',
+            headers: {
+            'Referrer-Policy': 'no-referrer',
+               'Access-Control-Allow-Origin': '*',
+               'Accept': 'application/json, text/javascript, */*; q=0.01',
+               'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+               token_uri: 'https://oauth2.googleapis.com/token',
+               refresh_token: '1//047hJy9LrGZP9CgYIARAAGAQSNwF-L9Irfp1IVROFH6ryvQT_-HKxoiGNxdAOaWc34mVKxYepy_soIZY9YCXTumLC3spCuBcJZEU'
+            })
+         });
+         const data = await response.json();
+         console.log('Access Token:', data.access_token);
+         return data.access_token;
+      } catch (error) {
+         console.error('Error:', error);
+      }
+   }
    ```
 
    - make a JS fetch request to the google sheets API to get ALL the data from the sheet
